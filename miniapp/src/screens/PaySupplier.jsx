@@ -1,0 +1,94 @@
+import { useState } from "react";
+import { erc20Abi, isAddress, parseUnits } from "viem";
+import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { CUSD_TESTNET, CHAIN } from "../lib/wagmi";
+import { recordSupplierPayment } from "../lib/invoices";
+
+const EXPLORER = CHAIN.blockExplorers?.default?.url || "https://celo-sepolia.blockscout.com";
+
+export default function PaySupplier({ isMiniPay, go, prefill }) {
+  const [supplierName, setSupplierName] = useState(prefill?.supplier_name || "");
+  const [to, setTo] = useState(prefill?.supplier_address || "");
+  const [amount, setAmount] = useState(prefill?.amount_cusd?.toString() || "");
+  const [error, setError] = useState("");
+  const [recorded, setRecorded] = useState(false);
+
+  const { writeContract, data: txHash, isPending, error: writeError, reset } = useWriteContract();
+  const { isLoading: confirming, isSuccess: confirmed } = useWaitForTransactionReceipt({
+    hash: txHash,
+    query: { enabled: !!txHash },
+  });
+
+  if (confirmed && txHash && !recorded) {
+    recordSupplierPayment({ supplierName, address: to, amountCusd: Number(amount), txHash });
+    setRecorded(true);
+  }
+
+  const submit = (e) => {
+    e.preventDefault();
+    const amt = Number(amount);
+    if (!isAddress(to)) return setError("Enter a valid 0x… address.");
+    if (!amt || amt <= 0) return setError("Enter a positive cUSD amount.");
+    setError("");
+    writeContract({
+      address: CUSD_TESTNET,
+      abi: erc20Abi,
+      functionName: "transfer",
+      args: [to, parseUnits(String(amt), 18)],
+      // MiniPay only supports legacy (type 0) transactions with cUSD as the
+      // fee currency; the wallet fills fees, we just avoid EIP-1559 fields.
+      ...(isMiniPay ? { feeCurrency: CUSD_TESTNET } : {}),
+    });
+  };
+
+  if (confirmed && txHash) {
+    return (
+      <div className="screen">
+        <div className="card success">
+          <h3>Payment sent ✓</h3>
+          <p>
+            <b>{Number(amount).toFixed(2)} cUSD</b> → {supplierName || "supplier"}
+          </p>
+          <a className="small" href={`${EXPLORER}/tx/${txHash}`} target="_blank" rel="noreferrer">
+            {txHash.slice(0, 14)}… ↗
+          </a>
+        </div>
+        <div className="actions">
+          <button className="primary" onClick={() => go("ledger")}>View ledger</button>
+          <button onClick={() => { reset(); setRecorded(false); setAmount(""); }}>
+            Pay another
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="screen">
+      <h2>Pay supplier</h2>
+      <form onSubmit={submit} className="form">
+        <label>
+          Supplier name <span className="muted small">(optional)</span>
+          <input value={supplierName} onChange={(e) => setSupplierName(e.target.value)} placeholder="Maria" />
+        </label>
+        <label>
+          Wallet address
+          <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="0x…" spellCheck={false} />
+        </label>
+        <label>
+          Amount (cUSD)
+          <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="20" />
+        </label>
+        {error && <p className="error">{error}</p>}
+        {writeError && (
+          <p className="error">
+            Transaction failed: {writeError.shortMessage || writeError.message}
+          </p>
+        )}
+        <button className="primary" type="submit" disabled={isPending || confirming}>
+          {isPending ? "Confirm in wallet…" : confirming ? "Confirming on-chain…" : "Send cUSD"}
+        </button>
+      </form>
+    </div>
+  );
+}

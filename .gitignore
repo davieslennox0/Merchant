@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.pyc
+merchant_agent.db
+node_modules/
+.venv/
+venv/
+miniapp/dist/
+miniapp/node_modules/
+*.db
+.agents/

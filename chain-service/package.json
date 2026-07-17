@@ -1,0 +1,15 @@
+{
+  "name": "merchant-agent-chain-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Celo Alfajores cUSD service for Merchant Agent (balance, transfer scan, send)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ethers": "^6.13.0",
+    "express": "^4.19.0"
+  }
+}

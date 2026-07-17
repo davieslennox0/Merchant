@@ -1,0 +1,5 @@
+# bizpal.duckdns.org points at the VPS (45.77.157.120).
+# Caddy auto-provisions HTTPS (required for Meta webhooks + payment links).
+bizpal.duckdns.org {
+    reverse_proxy 127.0.0.1:8010
+}
