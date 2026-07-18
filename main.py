@@ -7,11 +7,11 @@ from pathlib import Path
 
 import qrcode
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy import select
 
-from app import llm
+from app import llm, x402
 from app.config import CUSD_CONTRACT_ADDRESS, WHATSAPP_VERIFY_TOKEN
 from app.db import Invoice, LedgerEntry, Merchant, get_session, init_db
 from app.handlers import handle_inbound, run_reminders
@@ -145,12 +145,7 @@ PERIOD_LABELS = {
 }
 
 
-@app.post("/api/agent/chat")
-async def agent_chat(request: Request):
-    """Groq-backed agent for the MiniPay Mini App. The frontend sends the
-    merchant's local stats as context; on-chain actions are executed client-side
-    by the wallet owner, so this endpoint only classifies and replies."""
-    payload = await request.json()
+def _agent_reply(payload: dict) -> dict:
     message = (payload.get("message") or "").strip()
     ctx = payload.get("context") or {}
     stats = ctx.get("stats") or {}
@@ -192,6 +187,33 @@ async def agent_chat(request: Request):
         )
 
     return {"intent": intent, "fields": fields, "reply": reply}
+
+
+@app.post("/api/agent/chat")
+async def agent_chat(request: Request):
+    """Groq-backed agent for the MiniPay Mini App. The frontend sends the
+    merchant's local stats as context; on-chain actions are executed client-side
+    by the wallet owner, so this endpoint only classifies and replies."""
+    return _agent_reply(await request.json())
+
+
+@app.post("/api/agent/paid-chat")
+async def agent_paid_chat(request: Request):
+    """x402-gated agent chat for external agents/clients: each request costs a
+    USDC micropayment on Celo mainnet, settled via the Celo x402 facilitator."""
+    header = request.headers.get("X-PAYMENT")
+    if not header:
+        return JSONResponse(x402.challenge_body(), status_code=402)
+    try:
+        payment = x402.decode_payment_header(header)
+    except Exception:
+        return JSONResponse(x402.challenge_body("malformed X-PAYMENT header"), status_code=402)
+    try:
+        settle = await x402.verify_and_settle(payment)
+    except x402.X402Error as e:
+        return JSONResponse(x402.challenge_body(str(e)), status_code=402)
+    result = _agent_reply(await request.json())
+    return JSONResponse(result, headers={"X-PAYMENT-RESPONSE": x402.settlement_header(settle)})
 
 
 @app.get("/health")
