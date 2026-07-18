@@ -1,27 +1,39 @@
 import { erc20Abi, formatUnits } from "viem";
 import { useReadContract } from "wagmi";
-import { CUSD_TESTNET } from "../lib/wagmi";
+import { TOKENS } from "../lib/wagmi";
 import { getStats } from "../lib/invoices";
 
-export default function Dashboard({ address, isMiniPay, go }) {
-  const stats = getStats();
-  const { data: balance, isLoading } = useReadContract({
-    address: CUSD_TESTNET,
+const [CUSD, USDC] = TOKENS;
+
+function useTokenBalance(token, address) {
+  const { data, isLoading } = useReadContract({
+    address: token.address,
     abi: erc20Abi,
     functionName: "balanceOf",
     args: [address],
     query: { enabled: !!address, refetchInterval: 15000 },
   });
+  return isLoading || data === undefined
+    ? "…"
+    : Number(formatUnits(data, token.decimals)).toFixed(2);
+}
+
+export default function Dashboard({ address, isMiniPay, go }) {
+  const stats = getStats();
+  const cusdBalance = useTokenBalance(CUSD, address);
+  const usdcBalance = useTokenBalance(USDC, address);
 
   return (
     <div className="screen">
       <div className="balance-card">
-        <div className="muted">cUSD balance</div>
+        <div className="muted">wallet balance</div>
         <div className="balance">
-          {isLoading || balance === undefined
-            ? "…"
-            : Number(formatUnits(balance, 18)).toFixed(2)}
+          {cusdBalance}
           <span className="unit"> cUSD</span>
+        </div>
+        <div className="muted">
+          {usdcBalance}
+          <span className="unit small"> USDC</span>
         </div>
         <div className="muted small">
           {address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "no wallet"} · Celo

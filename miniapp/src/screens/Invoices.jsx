@@ -22,8 +22,8 @@ export default function Invoices({ go, refreshKey }) {
     <div className="screen" key={refreshKey}>
       <h2>Invoices</h2>
       <p className="muted small">
-        Watching cUSD transfers to your wallet — pending invoices flip to paid
-        automatically when a matching payment lands on-chain.
+        Watching cUSD and USDC transfers to your wallet — pending invoices flip
+        to paid automatically when a matching payment lands on-chain.
       </p>
       <ul className="list">
         {invoices.map((inv) => (
@@ -41,7 +41,10 @@ export default function Invoices({ go, refreshKey }) {
               )}
             </div>
             <div className="list-side">
-              <div className="amount">{inv.amountCusd.toFixed(2)}</div>
+              <div className="amount">
+                {inv.amountCusd.toFixed(2)}
+                <span className="muted small"> {inv.currency || "cUSD"}</span>
+              </div>
               <span className={`pill ${inv.status}`}>{inv.status}</span>
             </div>
           </li>

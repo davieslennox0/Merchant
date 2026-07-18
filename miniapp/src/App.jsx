@@ -23,7 +23,7 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   usePaymentWatcher(address, (invoice) => {
-    setToast(`💰 ${invoice.customerName} paid ${invoice.amountCusd.toFixed(2)} cUSD`);
+    setToast(`💰 ${invoice.customerName} paid ${invoice.amountCusd.toFixed(2)} ${invoice.currency || "cUSD"}`);
     setRefreshKey((k) => k + 1);
     setTimeout(() => setToast(null), 6000);
   });

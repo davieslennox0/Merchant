@@ -45,6 +45,7 @@ export default function Ledger({ refreshKey }) {
               </div>
               <div className={`amount ${e.type}`}>
                 {e.type === "in" ? "+" : "−"}{e.amountCusd.toFixed(2)}
+                <span className="muted small"> {e.currency}</span>
               </div>
             </li>
           ))}

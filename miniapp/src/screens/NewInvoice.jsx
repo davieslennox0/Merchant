@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { createInvoice } from "../lib/invoices";
+import { TOKENS } from "../lib/wagmi";
 
 export default function NewInvoice({ address, go, prefill }) {
   const [customerName, setCustomerName] = useState(prefill?.customer_name || "");
   const [amount, setAmount] = useState(prefill?.amount_cusd?.toString() || "");
+  const [currency, setCurrency] = useState(prefill?.currency || "cUSD");
   const [description, setDescription] = useState(prefill?.description || "");
   const [created, setCreated] = useState(null);
   const [error, setError] = useState("");
@@ -12,14 +14,14 @@ export default function NewInvoice({ address, go, prefill }) {
     e.preventDefault();
     const amt = Number(amount);
     if (!customerName.trim()) return setError("Customer name is required.");
-    if (!amt || amt <= 0) return setError("Enter a positive cUSD amount.");
+    if (!amt || amt <= 0) return setError("Enter a positive amount.");
     setError("");
-    setCreated(createInvoice({ customerName: customerName.trim(), amountCusd: amt, description }));
+    setCreated(createInvoice({ customerName: customerName.trim(), amountCusd: amt, description, currency }));
   };
 
   if (created) {
     const shareText = encodeURIComponent(
-      `Hi ${created.customerName}! Please pay ${created.amountCusd.toFixed(2)} cUSD` +
+      `Hi ${created.customerName}! Please pay ${created.amountCusd.toFixed(2)} ${created.currency}` +
         (created.description ? ` for ${created.description}` : "") +
         ` on Celo (MiniPay) to:\n${address}\n\nI'll get notified automatically when it lands.`
     );
@@ -29,7 +31,7 @@ export default function NewInvoice({ address, go, prefill }) {
           <h3>Invoice created ✓</h3>
           <p>
             <b>{created.customerName}</b> owes{" "}
-            <b>{created.amountCusd.toFixed(2)} cUSD</b>
+            <b>{created.amountCusd.toFixed(2)} {created.currency}</b>
             {created.description ? <> for {created.description}</> : null}.
           </p>
           <p className="muted small">
@@ -59,8 +61,16 @@ export default function NewInvoice({ address, go, prefill }) {
           <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="John" />
         </label>
         <label>
-          Amount (cUSD)
+          Amount
           <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="50" />
+        </label>
+        <label>
+          Currency
+          <select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+            {TOKENS.map((t) => (
+              <option key={t.symbol} value={t.symbol}>{t.symbol}</option>
+            ))}
+          </select>
         </label>
         <label>
           Description <span className="muted small">(optional)</span>
