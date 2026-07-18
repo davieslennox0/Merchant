@@ -129,7 +129,7 @@ async function sweep() {
   if (!verify.isValid) throw new Error(`sweep verify failed: ${verify.invalidReason || vr.status}`);
   const sr = await fetch(`${FACILITATOR}/settle`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-API-Key": process.env.X402_API_KEY || "" },
     body: JSON.stringify(body),
   });
   const settle = await sr.json().catch(() => ({}));

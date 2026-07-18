@@ -17,6 +17,7 @@ log = logging.getLogger("merchant-agent.x402")
 
 FACILITATOR_URL = os.getenv("X402_FACILITATOR_URL", "https://api.x402.celo.org").rstrip("/")
 PAYTO = os.getenv("X402_PAYTO", "")
+API_KEY = os.getenv("X402_API_KEY", "")
 USDC_MAINNET = os.getenv("USDC_MAINNET", "0xcebA9300f2b948710d2653dD7B07f33A8B32118C")
 PRICE_ATOMIC = os.getenv("X402_PRICE_ATOMIC", "1000")  # USDC has 6 decimals
 RESOURCE_URL = os.getenv("PUBLIC_BASE_URL", "https://bizpal.duckdns.org").rstrip("/") + "/api/agent/paid-chat"
@@ -61,7 +62,7 @@ async def verify_and_settle(payment_payload: dict) -> dict:
         if vr.status_code != 200 or not verify.get("isValid"):
             reason = verify.get("invalidReason") or verify.get("error") or f"verify HTTP {vr.status_code}"
             raise X402Error(f"payment verification failed: {reason}")
-        sr = await client.post(f"{FACILITATOR_URL}/settle", json=body)
+        sr = await client.post(f"{FACILITATOR_URL}/settle", json=body, headers={"X-API-Key": API_KEY})
         settle = sr.json() if sr.headers.get("content-type", "").startswith("application/json") else {}
         if sr.status_code != 200 or not (settle.get("success") or settle.get("transaction")):
             reason = settle.get("errorReason") or settle.get("error") or f"settle HTTP {sr.status_code}"
