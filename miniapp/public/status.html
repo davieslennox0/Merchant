@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Merchant Agent — x402 live</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --surface: #ffffff; --ink: #16191d; --ink-2: #5b6470;
+    --ink-3: #8b93a0; --line: #e4e7ec; --accent: #276749; --accent-soft: #e6f2ea;
+    --bar: #9ec5ab; --good: #276749; --warn: #92400e; --crit: #b42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101317; --surface: #191e24; --ink: #edf0f3; --ink-2: #9aa4b0;
+      --ink-3: #6b7480; --line: #2a313a; --accent: #7fd4a2; --accent-soft: #1d2b23;
+      --bar: #3d5c4a; --good: #7fd4a2; --warn: #f5b266; --crit: #f28b82;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, sans-serif;
+         max-width: 640px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 2s infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .sub { color: var(--ink-2); font-size: 13px; margin: 2px 0 18px; }
+  .hero { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+          padding: 22px 20px 18px; margin-bottom: 12px; }
+  .hero .num { font-size: 44px; font-weight: 700; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+  .hero .cap { color: var(--ink-2); font-size: 13px; }
+  .hero .delta { color: var(--accent); font-size: 13px; font-weight: 600; margin-top: 2px; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .tile .v { font-size: 19px; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .tile .k { color: var(--ink-2); font-size: 12px; margin-top: 1px; }
+  .tile .state { font-size: 12px; font-weight: 600; margin-top: 2px; }
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+            padding: 16px 18px; margin-bottom: 12px; }
+  h2 { font-size: 13px; font-weight: 600; color: var(--ink-2); text-transform: uppercase;
+       letter-spacing: .04em; margin-bottom: 10px; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th { text-align: left; color: var(--ink-3); font-size: 12px; font-weight: 500; padding: 4px 0; }
+  th:last-child, td:last-child { text-align: right; }
+  td { padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .rank { color: var(--ink-3); width: 26px; }
+  .us td { background: var(--accent-soft); }
+  .us .team::after { content: " · you"; color: var(--accent); font-weight: 650; font-size: 12px; }
+  .barcell { position: relative; }
+  .bar { position: absolute; left: 0; bottom: 4px; height: 3px; border-radius: 2px; background: var(--bar); }
+  .us .bar { background: var(--accent); }
+  .feed li { list-style: none; display: flex; justify-content: space-between; gap: 10px;
+             padding: 7px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+  .feed li:first-child { border-top: 0; }
+  .feed a { color: var(--ink); text-decoration: none; font-family: ui-monospace, monospace; font-size: 13px; }
+  .feed a:hover { text-decoration: underline; }
+  .feed .t { color: var(--ink-3); white-space: nowrap; }
+  .feed .amt { color: var(--accent); font-weight: 600; white-space: nowrap; }
+  .sweep .amt { color: var(--ink-2); }
+  footer { color: var(--ink-3); font-size: 12px; text-align: center; margin-top: 16px; }
+  .err { color: var(--crit); font-size: 13px; }
+</style>
+</head>
+<body>
+<h1><span class="dot" id="dot"></span> Merchant Agent — x402 live</h1>
+<p class="sub">Celo Agentic Payments &amp; DeFAI · Track 2: Most x402 Payments</p>
+
+<div class="hero">
+  <div class="num" id="count">—</div>
+  <div class="cap">x402 payments settled on Celo mainnet</div>
+  <div class="delta" id="rate"></div>
+</div>
+
+<div class="tiles">
+  <div class="tile"><div class="v" id="credits">—</div><div class="k">credits left</div><div class="state" id="creditState"></div></div>
+  <div class="tile"><div class="v" id="payerBal">—</div><div class="k">payer USDC</div></div>
+  <div class="tile"><div class="v" id="merchBal">—</div><div class="k">merchant USDC</div></div>
+</div>
+
+<section>
+  <h2>Track 2 leaderboard</h2>
+  <table id="board"><tbody></tbody></table>
+</section>
+
+<section>
+  <h2>Latest settlements</h2>
+  <ul class="feed" id="feed"></ul>
+</section>
+
+<footer id="foot">loading…</footer>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => n == null ? "—" : Number(n).toLocaleString();
+const OUR_REPO = "davieslennox0/Merchant";
+
+async function refresh() {
+  try {
+    const s = await (await fetch("/api/x402/status")).json();
+    $("count").textContent = fmt(s.payments);
+    $("payerBal").textContent = s.payer_usdc == null ? "—" : s.payer_usdc.toFixed(3);
+    $("merchBal").textContent = s.merchant_usdc == null ? "—" : s.merchant_usdc.toFixed(3);
+    $("credits").textContent = fmt(s.credits);
+
+    const cs = $("creditState");
+    if (s.credits == null) cs.textContent = "";
+    else if (s.credits > 100) { cs.textContent = "✓ ok"; cs.style.color = "var(--good)"; }
+    else if (s.credits > 0) { cs.textContent = "⚠ low"; cs.style.color = "var(--warn)"; }
+    else { cs.textContent = "✕ empty — top up"; cs.style.color = "var(--crit)"; }
+    $("dot").style.background = s.credits === 0 ? "var(--crit)" : "var(--good)";
+
+    // payments in the last hour, from the recent feed timestamps
+    const hourAgo = Date.now() - 36e5;
+    const perHr = (s.recent || []).filter(r => r.kind !== "sweep" && Date.parse(r.t) > hourAgo).length;
+    $("rate").textContent = perHr ? `▲ ${perHr} in the last ${Math.min(60, Math.round((Date.now() - Date.parse(s.recent[s.recent.length-1].t)) / 6e4))} min shown` : "";
+
+    const rows = (s.leaderboard || []).slice(0, 8);
+    const max = Math.max(1, ...rows.map(r => r.payments));
+    $("board").querySelector("tbody").innerHTML =
+      "<tr><th></th><th>team</th><th>payments</th></tr>" +
+      rows.map((r, i) => `
+        <tr class="${r.repo === OUR_REPO ? "us" : ""}">
+          <td class="rank">${i + 1}</td>
+          <td class="team">${r.team}</td>
+          <td class="barcell">${fmt(r.payments)}<span class="bar" style="width:${Math.round(r.payments / max * 100)}%"></span></td>
+        </tr>`).join("");
+
+    $("feed").innerHTML = (s.recent || []).map(r => `
+      <li class="${r.kind === "sweep" ? "sweep" : ""}">
+        <a href="https://celoscan.io/tx/${r.tx}" target="_blank" rel="noreferrer">${r.tx.slice(0, 10)}…</a>
+        <span class="amt">${r.kind === "sweep" ? "↩ sweep" : "+" + (Number(r.amount) / 1e6).toFixed(3)} USDC</span>
+        <span class="t">${new Date(r.t).toLocaleTimeString()}</span>
+      </li>`).join("");
+
+    $("foot").textContent = "auto-refreshes every 15s · leaderboard cached ~30min · updated " +
+      new Date().toLocaleTimeString();
+  } catch (e) {
+    $("foot").innerHTML = '<span class="err">refresh failed — retrying…</span>';
+  }
+}
+refresh();
+setInterval(refresh, 15000);
+</script>
+</body>
+</html>

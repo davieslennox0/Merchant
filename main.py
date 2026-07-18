@@ -11,7 +11,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy import select
 
-from app import llm, x402
+from app import llm, x402, x402_status
 from app.config import CUSD_CONTRACT_ADDRESS, WHATSAPP_VERIFY_TOKEN
 from app.db import Invoice, LedgerEntry, Merchant, get_session, init_db
 from app.handlers import handle_inbound, run_reminders
@@ -214,6 +214,11 @@ async def agent_paid_chat(request: Request):
         return JSONResponse(x402.challenge_body(str(e)), status_code=402)
     result = _agent_reply(await request.json())
     return JSONResponse(result, headers={"X-PAYMENT-RESPONSE": x402.settlement_header(settle)})
+
+
+@app.get("/api/x402/status")
+async def x402_live_status():
+    return await x402_status.status()
 
 
 @app.get("/health")

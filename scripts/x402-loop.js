@@ -135,10 +135,20 @@ async function sweep() {
   const settle = await sr.json().catch(() => ({}));
   if (!settle.success && !settle.transaction)
     throw new Error(`sweep settle failed: ${settle.errorReason || sr.status}`);
+  logPayment(settle.transaction, "sweep", bal);
   console.log(`sweep: ${formatUnits(bal, 6)} USDC merchant -> payer : ${settle.transaction}`);
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const LOG_FILE = path.join(__dirname, "../logs/x402-payments.ndjson");
+require("fs").mkdirSync(path.dirname(LOG_FILE), { recursive: true });
+function logPayment(tx, kind = "payment", amount = PRICE) {
+  require("fs").appendFileSync(
+    LOG_FILE,
+    JSON.stringify({ t: new Date().toISOString(), tx, kind, amount: amount.toString() }) + "\n"
+  );
+}
 
 async function loop(intervalMs) {
   let sent = 0;
@@ -155,6 +165,7 @@ async function loop(intervalMs) {
       const tx = await payOnce(sent);
       sent++;
       failures = 0;
+      logPayment(tx);
       console.log(`#${sent} paid ${formatUnits(PRICE, 6)} USDC : ${tx}`);
     } catch (e) {
       failures++;

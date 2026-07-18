@@ -9,3 +9,4 @@ miniapp/dist/
 miniapp/node_modules/
 *.db
 .agents/
+logs/
