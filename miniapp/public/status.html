@@ -113,13 +113,17 @@ async function refresh() {
     const perHr = (s.recent || []).filter(r => r.kind !== "sweep" && Date.parse(r.t) > hourAgo).length;
     $("rate").textContent = perHr ? `▲ ${perHr} in the last ${Math.min(60, Math.round((Date.now() - Date.parse(s.recent[s.recent.length-1].t)) / 6e4))} min shown` : "";
 
-    const rows = (s.leaderboard || []).slice(0, 8);
+    const all = s.leaderboard || [];
+    const isUs = (r) => (r.repo || "").toLowerCase() === OUR_REPO.toLowerCase();
+    const rows = all.slice(0, 8);
+    const ourIdx = all.findIndex(isUs);
+    if (ourIdx >= 8) rows.push(all[ourIdx]); // always show our row, with its real rank
     const max = Math.max(1, ...rows.map(r => r.payments));
     $("board").querySelector("tbody").innerHTML =
       "<tr><th></th><th>team</th><th>payments</th></tr>" +
-      rows.map((r, i) => `
-        <tr class="${r.repo === OUR_REPO ? "us" : ""}">
-          <td class="rank">${i + 1}</td>
+      rows.map((r) => `
+        <tr class="${isUs(r) ? "us" : ""}">
+          <td class="rank">${all.indexOf(r) + 1}</td>
           <td class="team">${r.team}</td>
           <td class="barcell">${fmt(r.payments)}<span class="bar" style="width:${Math.round(r.payments / max * 100)}%"></span></td>
         </tr>`).join("");
@@ -131,7 +135,7 @@ async function refresh() {
         <span class="t">${new Date(r.t).toLocaleTimeString()}</span>
       </li>`).join("");
 
-    $("foot").textContent = "auto-refreshes every 15s · leaderboard cached ~30min · updated " +
+    $("foot").textContent = "auto-refreshes every 15s · leaderboard via Dune (lags the chain ~2h) · updated " +
       new Date().toLocaleTimeString();
   } catch (e) {
     $("foot").innerHTML = '<span class="err">refresh failed — retrying…</span>';

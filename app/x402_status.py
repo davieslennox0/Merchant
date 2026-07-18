@@ -85,7 +85,7 @@ async def leaderboard() -> list:
         async with httpx.AsyncClient(timeout=30) as client:
             r = await client.get(
                 f"https://api.dune.com/api/v1/query/{TRACK2_QUERY}/results",
-                params={"limit": 12},
+                params={"limit": 20},
                 headers={"X-Dune-API-Key": DUNE_API_KEY},
             )
             rows = r.json().get("result", {}).get("rows", [])
