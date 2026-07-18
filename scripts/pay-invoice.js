@@ -15,6 +15,11 @@ const ERC20 = [
   "function balanceOf(address) view returns (uint256)",
 ];
 
+// ERC-8021 attribution suffix for the Celo hackathon leaderboard
+// (toDataSuffix("celo_64d533d628d1") from @celo/attribution-tags).
+const ATTRIBUTION_SUFFIX =
+  "63656c6f5f363464353333643632386431110080218021802180218021802180218021";
+
 async function main() {
   const [to, amountArg, countArg] = process.argv.slice(2);
   if (!to || !amountArg) {
@@ -34,7 +39,10 @@ async function main() {
   console.log(`  CELO ${formatUnits(celo, 18)} | cUSD ${formatUnits(cusdBal, 18)}`);
 
   for (let i = 0; i < count; i++) {
-    const tx = await cusd.transfer(to, parseUnits(amountArg, 18));
+    const data =
+      cusd.interface.encodeFunctionData("transfer", [to, parseUnits(amountArg, 18)]) +
+      ATTRIBUTION_SUFFIX;
+    const tx = await wallet.sendTransaction({ to: cusd.target, data });
     console.log(`sent ${amountArg} cUSD -> ${to} : ${tx.hash}`);
     const receipt = await tx.wait(1);
     console.log(`  confirmed in block ${receipt.blockNumber}`);

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { erc20Abi, isAddress, parseUnits } from "viem";
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import { CUSD_TESTNET, CHAIN } from "../lib/wagmi";
+import { toDataSuffix } from "@celo/attribution-tags";
+import { CUSD_TESTNET, CHAIN, ATTRIBUTION_TAG } from "../lib/wagmi";
 import { recordSupplierPayment } from "../lib/invoices";
 
 const EXPLORER = CHAIN.blockExplorers?.default?.url || "https://celo-sepolia.blockscout.com";
@@ -35,6 +36,8 @@ export default function PaySupplier({ isMiniPay, go, prefill }) {
       abi: erc20Abi,
       functionName: "transfer",
       args: [to, parseUnits(String(amt), 18)],
+      // ERC-8021 hackathon attribution tag — must ride on every transaction.
+      dataSuffix: toDataSuffix(ATTRIBUTION_TAG),
       // MiniPay only supports legacy (type 0) transactions with cUSD as the
       // fee currency; the wallet fills fees, we just avoid EIP-1559 fields.
       ...(isMiniPay ? { feeCurrency: CUSD_TESTNET } : {}),

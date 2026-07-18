@@ -7,6 +7,10 @@ import { injected } from "wagmi/connectors";
 // https://docs.celo.org/contracts/token-contracts
 export const CUSD_TESTNET = "0xEF4d55D6dE8e8d73232827Cd1e9b2F2dBb45bC80";
 
+// Celo Agentic Payments & DeFAI hackathon attribution tag, assigned at
+// registration and locked to github.com/davieslennox0/Merchant.
+export const ATTRIBUTION_TAG = "celo_64d533d628d1";
+
 export const CHAIN = celoSepolia;
 
 export const config = createConfig({
